@@ -11,6 +11,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- [NEW] Canvas Confetti library for particle effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     
     <style>
         :root {
@@ -51,14 +53,12 @@
 
         .section-wrapper { background-color: rgba(10, 10, 26, 0.85); border: 1px solid var(--color-secondary); box-shadow: 0 0 20px rgba(0, 255, 255, 0.2); backdrop-filter: blur(5px); border-radius: 0.5rem; }
         
-        /* Rounded Button */
         .press-release-btn {
             @apply inline-flex items-center justify-center py-2 px-4 border-2 border-primary text-primary font-display uppercase hover:bg-primary hover:text-bg transition-all duration-300;
             box-shadow: inset 0 0 5px var(--color-primary);
-            border-radius: 0.5rem; /* Explicitly set rounded corners */
+            border-radius: 0.5rem;
         }
         
-        /* Colorful Quote Style */
         .colorful-quote {
             background: linear-gradient(90deg, var(--color-primary), var(--color-accent), var(--color-secondary));
             -webkit-background-clip: text;
@@ -82,6 +82,31 @@
         @keyframes mascot-spin { 100% {transform: rotate(360deg);} }
         .mascot-animate { animation-duration: 0.5s; animation-fill-mode: both; }
 
+        /* [NEW] Mascot Toast Notification Style */
+        .mascot-toast {
+            position: fixed;
+            bottom: 130px; /* Position above mascot */
+            right: 20px;
+            background-color: var(--color-dark-purple);
+            color: var(--color-text);
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.5rem;
+            border: 1px solid var(--color-secondary);
+            box-shadow: 0 0 15px var(--color-secondary);
+            z-index: 1001;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 0.9rem;
+            max-width: 250px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+        .mascot-toast.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         /* [UPDATED] Modal for Scrollable Press Release */
         #modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -89,9 +114,8 @@
             z-index: 1000; 
             display: none; 
             justify-content: center; 
-            align-items: flex-start; /* Align to top for scrolling */
-            padding-top: 5vh;
-            padding-bottom: 5vh;
+            align-items: flex-start;
+            padding: 5vh 2vw; /* Use vw for side padding */
             backdrop-filter: blur(8px); 
             cursor: zoom-out;
         }
@@ -100,12 +124,11 @@
             padding: 1rem; 
             cursor: default; 
             text-align: center;
-            overflow-y: auto; /* Enable vertical scroll */
-            max-height: 90vh; /* Set max height for the wrapper */
+            overflow-y: auto;
+            max-height: 90vh;
         }
         .modal-content {
             max-width: 90vw;
-            /* height: auto; Remove fixed height */
             border: 2px solid var(--color-primary); 
             box-shadow: 0 0 30px var(--color-primary); 
             cursor: zoom-in; 
@@ -114,7 +137,7 @@
         .modal-content.zoomed { transform: scale(1.5); cursor: zoom-out; }
         .modal-close { position: absolute; top: 20px; right: 20px; font-size: 2rem; color: var(--color-secondary); cursor: pointer; z-index: 1001; text-shadow: 0 0 10px var(--color-secondary); }
         
-        /* --- Interactive Timeline --- */
+        /* [UPDATED] Interactive Timeline (with RWD) */
         .timeline-container { position: relative; }
         .timeline-line { position: absolute; left: 50%; top: 0; bottom: 0; width: 3px; background-color: rgba(0, 255, 255, 0.2); transform: translateX(-50%); }
         .timeline-line-progress { position: absolute; left: 0; top: 0; width: 100%; height: 0; background: linear-gradient(to bottom, var(--color-primary), var(--color-secondary)); transition: height 0.5s ease-out; }
@@ -127,12 +150,22 @@
         .timeline-item.is-visible .timeline-content { opacity: 1; transform: translateY(0); }
         .timeline-item::after { content: ""; display: table; clear: both; }
 
-        /* Style for timeline title background */
         .timeline-title-tag {
             background-color: var(--color-dark-purple);
             padding: 0.25rem 1rem;
-            border-radius: 0.5rem; /* rounded-lg */
+            border-radius: 0.5rem;
             display: inline-block;
+        }
+
+        /* [NEW] RWD for Timeline on smaller screens */
+        @media (max-width: 767px) {
+            .timeline-line { left: 20px; }
+            .timeline-dot { left: 20px; }
+            .timeline-content {
+                width: calc(100% - 60px);
+                float: right !important; /* Force all content to the right */
+                text-align: left !important; /* Force all text to align left */
+            }
         }
 
         /* [FIXED] Rounded & Centered Flip Cards */
@@ -140,26 +173,13 @@
         .flip-card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.8s; transform-style: preserve-3d; }
         .flip-card:hover .flip-card-inner { transform: rotateY(180deg); }
         .flip-card-front, .flip-card-back { 
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center; /* Vertical center */
-            align-items: center; /* Horizontal center */
-            padding: 1.5rem;
-            text-align: center;
-            -webkit-backface-visibility: hidden; 
-            backface-visibility: hidden; 
-            border: 1px solid var(--color-secondary); 
-            background-color: var(--color-dark-purple);
-            box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.3);
-            border-radius: 0.75rem; /* Explicitly set rounded corners (rounded-xl) */
+            position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 1.5rem; text-align: center; -webkit-backface-visibility: hidden; backface-visibility: hidden; border: 1px solid var(--color-secondary); background-color: var(--color-dark-purple); box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.3); border-radius: 0.75rem;
         }
         .flip-card-back { transform: rotateY(180deg); }
 
-        /* --- Terminal Effect for Thanks --- */
-        .terminal-window { background: #000; border: 1px solid var(--color-secondary); box-shadow: 0 0 15px var(--color-secondary); padding: 1.5rem; font-family: 'Courier New', monospace; min-height: 400px; border-radius: 0.5rem; }
+        /* [UPDATED] Terminal Effect for Thanks (Font size RWD) */
+        .terminal-window { background: #000; border: 1px solid var(--color-secondary); box-shadow: 0 0 15px var(--color-secondary); padding: 1rem; font-family: 'Courier New', monospace; min-height: 400px; border-radius: 0.5rem; font-size: 0.8rem; }
+        @media (min-width: 768px) { .terminal-window { padding: 1.5rem; font-size: 1rem; } }
         .terminal-line { white-space: pre-wrap; margin-bottom: 0.5rem; }
         .terminal-cursor { display: inline-block; background-color: var(--color-accent); width: 10px; height: 1.2em; animation: blink 1s step-end infinite; }
         @keyframes blink { 50% { opacity: 0; } }
@@ -183,11 +203,13 @@
     <main class="relative z-10">
         <section id="home" class="min-h-screen flex items-center justify-center text-center">
             <div class="hero-content animate-on-scroll is-visible px-4">
-                <h1 class="glitch-text text-6xl md:text-8xl font-black uppercase">看見她們的力量</h1>
+                <!-- [UPDATED] Responsive font size for H1 -->
+                <h1 class="glitch-text text-5xl md:text-8xl font-black uppercase">看見她們的力量</h1>
                 <div class="w-48 h-1 bg-gradient-to-r from-primary to-secondary mx-auto my-6"></div>
-                <h2 class="text-xl md:text-2xl font-light text-gray-300">雙溪小記者(1132學期) | 在地女性故事採訪成果</h2>
-                <!-- [NEW] Added links here -->
-                <div class="flex justify-center items-center space-x-8 mt-8">
+                <!-- [UPDATED] Responsive font size for H2 -->
+                <h2 class="text-lg md:text-2xl font-light text-gray-300">雙溪小記者(1132學期) | 在地女性故事採訪成果</h2>
+                <!-- [UPDATED] Responsive layout for links -->
+                <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-8 mt-8">
                     <a href="https://sites.google.com/view/sxhsshennews" target="_blank" rel="noopener noreferrer" class="text-secondary hover:text-accent transition-colors font-display text-lg"><i class="fas fa-globe mr-2"></i>官方網站</a>
                     <a href="https://www.youtube.com/channel/UCq0ZFa7IFFe0AGFb5JVW_QA" target="_blank" rel="noopener noreferrer" class="text-secondary hover:text-accent transition-colors font-display text-lg"><i class="fab fa-youtube mr-2"></i>YouTube頻道</a>
                 </div>
@@ -195,19 +217,19 @@
         </section>
 
         <div class="px-4 md:px-8">
-            <div class="section-wrapper my-16 py-16 px-6">
+            <div class="section-wrapper my-16 py-12 px-4 md:py-16 md:px-6">
                 <section id="intro">
-                     <h2 class="title text-4xl md:text-5xl text-center mb-8">我們想說的故事</h2>
-                     <p class="max-w-4xl mx-auto text-lg text-center text-gray-300 leading-relaxed animate-on-scroll">
+                     <h2 class="title text-3xl md:text-5xl text-center mb-8">我們想說的故事</h2>
+                     <p class="max-w-4xl mx-auto text-base md:text-lg text-center text-gray-300 leading-relaxed animate-on-scroll">
                         這不僅是一門課，更是一趟走入社區、用心傾聽的旅程。我們是雙溪高中的小記者，我們想用自己的筆，記錄下那些在我們身邊，以溫柔與堅韌點亮地方的女性身影。
                      </p>
                 </section>
             </div>
             
-            <div class="section-wrapper my-16 py-16 px-6">
+            <div class="section-wrapper my-16 py-12 px-4 md:py-16 md:px-6">
                 <section id="women">
-                    <h2 class="title text-4xl md:text-5xl text-center mb-8">她們，點亮了雙溪</h2>
-                    <p class="max-w-4xl mx-auto text-lg text-center text-gray-300 mb-12">四位女性，四段截然不同卻同樣動人的生命篇章。</p>
+                    <h2 class="title text-3xl md:text-5xl text-center mb-8">她們，點亮了雙溪</h2>
+                    <p class="max-w-4xl mx-auto text-base md:text-lg text-center text-gray-300 mb-12">四位女性，四段截然不同卻同樣動人的生命篇章。</p>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12 mt-10 max-w-6xl mx-auto">
                         <div class="text-center animate-on-scroll">
                             <div class="svg-avatar-container w-40 h-40 mx-auto">
@@ -241,16 +263,16 @@
                 </section>
             </div>
             
-            <div id="story-1" class="section-wrapper my-16 py-12 px-6">
-                 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+            <div id="story-1" class="section-wrapper my-16 py-12 px-4 md:px-6">
+                 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 md:gap-12 items-center">
                     <div class="svg-story-container p-4 animate-on-scroll">
                         <svg viewBox="0 0 100 100"><path d="M15 85 L15 15 L50 5 L85 15 L85 85 L50 95 Z" fill="none" stroke="var(--color-primary)" stroke-width="1.5"/><path d="M50 95 V5" stroke="var(--color-primary)" stroke-width="1"/><path d="M15 25 L50 15 L85 25 M15 35 L50 25 L85 35 M15 45 L50 35 L85 45" fill="none" stroke="var(--color-secondary)" stroke-width="0.5" opacity="0.7"/><path d="M60 40 C70 30 80 40 80 50 C80 65 65 60 60 75" fill="none" stroke="var(--color-accent)" stroke-width="2"/></svg>
                     </div>
                     <div class="animate-on-scroll delay-200">
-                        <h3 class="title text-3xl mb-1">跨文化的溫柔使者</h3>
+                        <h3 class="title text-2xl md:text-3xl mb-1">跨文化的溫柔使者</h3>
                         <p class="text-xl text-gray-400 font-serif mb-6">— 阮氏順 老師</p>
-                        <div class="quote-box my-6 p-4 border-l-4 border-secondary bg-dark-purple/50 rounded-r-lg"><p class="italic text-lg">「<span class="colorful-quote">來到臺灣後，我感受到師生之間的親切互動與濃厚的學習氛圍，這讓我非常感動。</span>」</p></div>
-                        <ul class="list-none space-y-3 mt-4">
+                        <div class="quote-box my-6 p-4 border-l-4 border-secondary bg-dark-purple/50 rounded-r-lg"><p class="italic text-base md:text-lg">「<span class="colorful-quote">來到臺灣後，我感受到師生之間的親切互動與濃厚的學習氛圍，這讓我非常感動。</span>」</p></div>
+                        <ul class="list-none space-y-3 mt-4 text-sm md:text-base">
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>因嚮往臺灣的人情味與風光而來臺求學。</li>
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>愛上雙溪的寧靜祥和，與都市印象截然不同。</li>
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>在雙溪高中開設越南語課程，成為校園的文化橋樑。</li>
@@ -261,16 +283,16 @@
                 </div>
             </div>
 
-            <div id="story-2" class="section-wrapper my-16 py-12 px-6">
-                 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+            <div id="story-2" class="section-wrapper my-16 py-12 px-4 md:px-6">
+                 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 md:gap-12 items-center">
                     <div class="svg-story-container p-4 animate-on-scroll delay-200 md:order-2">
                         <svg viewBox="0 0 100 100"><path d="M10 85 H 90 V 45 L 80 30 H 20 L 10 45 Z" fill="none" stroke="var(--color-primary)" stroke-width="1.5"/><rect x="40" y="55" width="20" height="30" fill="none" stroke="var(--color-secondary)" stroke-width="1"/><path d="M45 25 C 50 15 55 25 M48 20 C 50 12 52 20 M52 28 C 50 20 48 28" fill="none" stroke="var(--color-accent)" stroke-width="1" stroke-linecap="round"/></svg>
                     </div>
                     <div class="animate-on-scroll md:order-1">
-                        <h3 class="title text-3xl mb-1">從胡志明到雙溪的家</h3>
+                        <h3 class="title text-2xl md:text-3xl mb-1">從胡志明到雙溪的家</h3>
                         <p class="text-xl text-gray-400 font-serif mb-6">— 陳金草(阿桃) 老闆娘</p>
-                        <div class="quote-box my-6 p-4 border-l-4 border-secondary bg-dark-purple/50 rounded-r-lg"><p class="italic text-lg">「<span class="colorful-quote">這裡安靜又安全，讓她感受到家的溫暖，甚至不需要鎖門。</span>」</p></div>
-                        <ul class="list-none space-y-3 mt-4">
+                        <div class="quote-box my-6 p-4 border-l-4 border-secondary bg-dark-purple/50 rounded-r-lg"><p class="italic text-base md:text-lg">「<span class="colorful-quote">這裡安靜又安全，讓她感受到家的溫暖，甚至不需要鎖門。</span>」</p></div>
+                        <ul class="list-none space-y-3 mt-4 text-sm md:text-base">
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>克服語言與氣候挑戰，從不適應到融入臺灣。</li>
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>將越南開店經驗帶來雙溪，用美食傳遞文化。</li>
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>在異鄉築起幸福生活，並榮獲模範母親。</li>
@@ -281,16 +303,16 @@
                 </div>
             </div>
 
-            <div id="story-3" class="section-wrapper my-16 py-12 px-6">
-                 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+            <div id="story-3" class="section-wrapper my-16 py-12 px-4 md:px-6">
+                 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 md:gap-12 items-center">
                     <div class="svg-story-container p-4 animate-on-scroll">
                        <svg viewBox="0 0 100 100"><defs><filter id="glow"><feGaussianBlur stdDeviation="2.5" result="coloredBlur"/><feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><path d="M50 85 C 20 65, 20 35, 50 15 C 80 35, 80 65, 50 85 Z" fill="none" stroke="var(--color-primary)" stroke-width="1.5"/><circle cx="50" cy="50" r="15" fill="var(--color-secondary)" filter="url(#glow)"/></svg>
                     </div>
                     <div class="animate-on-scroll delay-200">
-                        <h3 class="title text-3xl mb-1">校園的溫柔守護者</h3>
+                        <h3 class="title text-2xl md:text-3xl mb-1">校園的溫柔守護者</h3>
                         <p class="text-xl text-gray-400 font-serif mb-6">— 陳淑萍 女士</p>
-                        <div class="quote-box my-6 p-4 border-l-4 border-secondary bg-dark-purple/50 rounded-r-lg"><p class="italic text-lg">「<span class="colorful-quote">我從小在這裡長大，現在能在母校工作，感覺就像回到家一樣。</span>」</p></div>
-                        <ul class="list-none space-y-3 mt-4">
+                        <div class="quote-box my-6 p-4 border-l-4 border-secondary bg-dark-purple/50 rounded-r-lg"><p class="italic text-base md:text-lg">「<span class="colorful-quote">我從小在這裡長大，現在能在母校工作，感覺就像回到家一樣。</span>」</p></div>
+                        <ul class="list-none space-y-3 mt-4 text-sm md:text-base">
                            <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>土生土長的雙溪人，對家鄉與母校情感深厚。</li>
                            <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>為照顧家人扛起責任，展現女性的堅韌與奉獻。</li>
                            <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>在平凡崗位默默付出，是師生眼中友善安定的力量。</li>
@@ -301,16 +323,16 @@
                 </div>
             </div>
 
-            <div id="story-4" class="section-wrapper my-16 py-12 px-6">
-                 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+            <div id="story-4" class="section-wrapper my-16 py-12 px-4 md:px-6">
+                 <div class="max-w-5xl mx-auto grid md:grid-cols-2 gap-8 md:gap-12 items-center">
                     <div class="svg-story-container p-4 animate-on-scroll delay-200 md:order-2">
                         <svg viewBox="0 0 100 100"><path d="M10 85 L50 15 L90 85 Z" fill="none" stroke="var(--color-primary)" stroke-width="1.5"/><path d="M20 85 C 30 70, 40 70, 50 85 M50 85 C 60 70, 70 70, 80 85" fill="none" stroke="var(--color-secondary)" stroke-width="1"/><path d="M50 15 L50 35" stroke="var(--color-accent)" stroke-width="2"/><circle cx="50" cy="45" r="5" fill="none" stroke="var(--color-accent)" stroke-width="1.5"/></svg>
                     </div>
                     <div class="animate-on-scroll md:order-1">
-                        <h3 class="title text-3xl mb-1">以陪伴為舟：梁姿茵老師的教育之心</h3>
+                        <h3 class="title text-2xl md:text-3xl mb-1">以陪伴為舟：梁姿茵老師的教育之心</h3>
                         <p class="text-xl text-gray-400 font-serif mb-6">— 梁姿茵 老師</p>
-                        <div class="quote-box my-6 p-4 border-l-4 border-secondary bg-dark-purple/50 rounded-r-lg"><p class="italic text-lg">「<span class="colorful-quote">我心情不好時，我知道在高雄有一個棲身之所可以躲著。</span>」</p></div>
-                        <ul class="list-none space-y-3 mt-4">
+                        <div class="quote-box my-6 p-4 border-l-4 border-secondary bg-dark-purple/50 rounded-r-lg"><p class="italic text-base md:text-lg">「<span class="colorful-quote">我心情不好時，我知道在高雄有一個棲身之所可以躲著。</span>」</p></div>
+                        <ul class="list-none space-y-3 mt-4 text-sm md:text-base">
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>受小學恩師啟發，立志成為能「陪伴」學生的老師。</li>
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>從南臺灣來到雙溪，經歷氣候與教學環境的雙重挑戰。</li>
                             <li class="flex items-start"><span class="text-primary mr-3 mt-1">✦</span>將故鄉「高雄」視為心靈港灣，是支持她前行的力量。</li>
@@ -321,8 +343,8 @@
                 </div>
             </div>
             
-            <div id="process" class="section-wrapper my-16 py-16 px-6">
-                <h2 class="title text-4xl text-center mb-16">從0到1，我們的採訪之路</h2>
+            <div id="process" class="section-wrapper my-16 py-12 px-4 md:py-16 md:px-6">
+                <h2 class="title text-3xl md:text-4xl text-center mb-16">從0到1，我們的採訪之路</h2>
                 <div class="timeline-container max-w-4xl mx-auto">
                     <div class="timeline-line">
                         <div class="timeline-line-progress"></div>
@@ -332,8 +354,8 @@
                         <div class="timeline-content">
                             <div class="flex items-center justify-end gap-4">
                                 <div>
-                                    <h3 class="font-display text-2xl text-secondary mb-2"><span class="timeline-title-tag">點子</span></h3>
-                                    <p class="mt-2">確立「在地女性」主題，腦力激盪，凝聚共識。</p>
+                                    <h3 class="font-display text-xl md:text-2xl text-secondary mb-2"><span class="timeline-title-tag">點子</span></h3>
+                                    <p class="mt-2 text-sm md:text-base">確立「在地女性」主題，腦力激盪，凝聚共識。</p>
                                 </div>
                                 <i class="fa-solid fa-lightbulb text-4xl text-accent" style="text-shadow: 0 0 10px var(--color-accent);"></i>
                             </div>
@@ -345,8 +367,8 @@
                             <div class="flex items-center justify-start gap-4">
                                 <i class="fa-solid fa-book-open-reader text-4xl text-accent" style="text-shadow: 0 0 10px var(--color-accent);"></i>
                                 <div>
-                                    <h3 class="font-display text-2xl text-secondary mb-2"><span class="timeline-title-tag">學習</span></h3>
-                                    <p class="mt-2">學習訪綱設計、攝影技巧、採訪禮儀與新聞稿寫作。</p>
+                                    <h3 class="font-display text-xl md:text-2xl text-secondary mb-2"><span class="timeline-title-tag">學習</span></h3>
+                                    <p class="mt-2 text-sm md:text-base">學習訪綱設計、攝影技巧、採訪禮儀與新聞稿寫作。</p>
                                 </div>
                             </div>
                         </div>
@@ -356,8 +378,8 @@
                         <div class="timeline-content">
                              <div class="flex items-center justify-end gap-4">
                                 <div>
-                                    <h3 class="font-display text-2xl text-secondary mb-2"><span class="timeline-title-tag">尋訪</span></h3>
-                                    <p class="mt-2">分組討論，從校園與社區中尋找我們的故事主角。</p>
+                                    <h3 class="font-display text-xl md:text-2xl text-secondary mb-2"><span class="timeline-title-tag">尋訪</span></h3>
+                                    <p class="mt-2 text-sm md:text-base">分組討論，從校園與社區中尋找我們的故事主角。</p>
                                 </div>
                                 <i class="fa-solid fa-magnifying-glass-location text-4xl text-accent" style="text-shadow: 0 0 10px var(--color-accent);"></i>
                             </div>
@@ -369,8 +391,8 @@
                            <div class="flex items-center justify-start gap-4">
                                 <i class="fa-solid fa-ear-listen text-4xl text-accent" style="text-shadow: 0 0 10px var(--color-accent);"></i>
                                 <div>
-                                    <h3 class="font-display text-2xl text-secondary mb-2"><span class="timeline-title-tag">傾聽</span></h3>
-                                    <p class="mt-2">進行深度訪談，用心記錄下每一段珍貴的生命故事。</p>
+                                    <h3 class="font-display text-xl md:text-2xl text-secondary mb-2"><span class="timeline-title-tag">傾聽</span></h3>
+                                    <p class="mt-2 text-sm md:text-base">進行深度訪談，用心記錄下每一段珍貴的生命故事。</p>
                                 </div>
                            </div>
                         </div>
@@ -380,8 +402,8 @@
                         <div class="timeline-content">
                             <div class="flex items-center justify-end gap-4">
                                 <div>
-                                    <h3 class="font-display text-2xl text-secondary mb-2"><span class="timeline-title-tag">書寫</span></h3>
-                                    <p class="mt-2">將感動化為文字，反覆修改，完成我們的採訪報導。</p>
+                                    <h3 class="font-display text-xl md:text-2xl text-secondary mb-2"><span class="timeline-title-tag">書寫</span></h3>
+                                    <p class="mt-2 text-sm md:text-base">將感動化為文字，反覆修改，完成我們的採訪報導。</p>
                                 </div>
                                 <i class="fa-solid fa-pen-nib text-4xl text-accent" style="text-shadow: 0 0 10px var(--color-accent);"></i>
                             </div>
@@ -390,18 +412,18 @@
                 </div>
             </div>
 
-            <div id="reflection" class="section-wrapper my-16 py-16 px-6">
-                <h2 class="title text-4xl text-center mb-16">這趟旅程，我們的收穫</h2>
+            <div id="reflection" class="section-wrapper my-16 py-12 px-4 md:py-16 md:px-6">
+                <h2 class="title text-3xl md:text-4xl text-center mb-16">這趟旅程，我們的收穫</h2>
                 <div class="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
                     <div class="flip-card animate-on-scroll">
                         <div class="flip-card-inner">
                             <div class="flip-card-front">
                                 <i class="fas fa-eye text-5xl text-primary mb-4" style="text-shadow: 0 0 10px var(--color-primary);"></i>
                                 <h3 class="font-display text-3xl text-secondary">視野</h3>
-                                <p class="text-sm text-gray-400 mt-4">(將滑鼠移到卡片上)</p>
+                                <p class="text-sm text-gray-400 mt-4">(滑鼠或手指輕觸)</p>
                             </div>
                             <div class="flip-card-back">
-                                <p class="italic text-lg">「典範沒有固定的模樣。無論是跨越國界、深耕在地，還是默默守護，都同樣值得尊敬。」</p>
+                                <p class="italic text-base md:text-lg">「典範沒有固定的模樣。無論是跨越國界、深耕在地，還是默默守護，都同樣值得尊敬。」</p>
                             </div>
                         </div>
                     </div>
@@ -410,10 +432,10 @@
                             <div class="flip-card-front">
                                 <i class="fas fa-heart text-5xl text-primary mb-4" style="text-shadow: 0 0 10px var(--color-primary);"></i>
                                 <h3 class="font-display text-3xl text-secondary">同理</h3>
-                                <p class="text-sm text-gray-400 mt-4">(將滑鼠移到卡片上)</p>
+                                <p class="text-sm text-gray-400 mt-4">(滑鼠或手指輕觸)</p>
                             </div>
                             <div class="flip-card-back">
-                                <p class="italic text-lg">「我們學會了傾聽。每個人的故事裡，都藏著我們未曾想過的堅韌與溫柔。」</p>
+                                <p class="italic text-base md:text-lg">「我們學會了傾聽。每個人的故事裡，都藏著我們未曾想過的堅韌與溫柔。」</p>
                             </div>
                         </div>
                     </div>
@@ -422,10 +444,10 @@
                             <div class="flip-card-front">
                                 <i class="fas fa-map-marker-alt text-5xl text-primary mb-4" style="text-shadow: 0 0 10px var(--color-primary);"></i>
                                 <h3 class="font-display text-3xl text-secondary">認同</h3>
-                                <p class="text-sm text-gray-400 mt-4">(將滑鼠移到卡片上)</p>
+                                <p class="text-sm text-gray-400 mt-4">(滑鼠或手指輕觸)</p>
                             </div>
                             <div class="flip-card-back">
-                                <p class="italic text-lg">「雙溪對我們不再只是一個地名，而是由這些充滿生命力的故事交織而成的家。」</p>
+                                <p class="italic text-base md:text-lg">「雙溪對我們不再只是一個地名，而是由這些充滿生命力的故事交織而成的家。」</p>
                             </div>
                         </div>
                     </div>
@@ -434,13 +456,13 @@
         </div>
     </main>
     
-    <footer class="site-footer py-16 px-6">
+    <footer class="site-footer py-16 px-4 md:px-6">
         <div class="max-w-4xl mx-auto text-center">
-            <h2 class="title text-4xl mb-12">感謝聆聽</h2>
+            <h2 class="title text-3xl md:text-4xl mb-12">感謝聆聽</h2>
             <div class="terminal-window text-left animate-on-scroll">
                 <div id="terminal-content"></div>
             </div>
-            <div class="flex justify-center items-center space-x-8 mt-12 mb-6 animate-on-scroll">
+            <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-8 mt-12 mb-6 animate-on-scroll">
                 <a href="https://sites.google.com/view/sxhsshennews" target="_blank" rel="noopener noreferrer" class="text-secondary hover:text-accent transition-colors font-display text-lg"><i class="fas fa-globe mr-2"></i>官方網站</a>
                 <a href="https://www.youtube.com/channel/UCq0ZFa7IFFe0AGFb5JVW_QA" target="_blank" rel="noopener noreferrer" class="text-secondary hover:text-accent transition-colors font-display text-lg"><i class="fab fa-youtube mr-2"></i>YouTube頻道</a>
             </div>
@@ -452,7 +474,7 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Particles.js background
-        particlesJS("particles-js", {"particles":{"number":{"value":80,"density":{"enable":true,"value_area":800}},"color":{"value":"#00ffff"},"shape":{"type":"circle"},"opacity":{"value":0.5,"random":true,"anim":{"enable":true,"speed":1,"opacity_min":0.1,"sync":false}},"size":{"value":3,"random":true},"line_linked":{"enable":true,"distance":150,"color":"#ff00ff","opacity":0.4,"width":1},"move":{"enable":true,"speed":2,"direction":"none","out_mode":"out"}},"interactivity":{"detect_on":"canvas","events":{"onhover":{"enable":true,"mode":"grab"},"onclick":{"enable":true,"mode":"push"},"resize":true},"modes":{"grab":{"distance":140,"line_linked":{"opacity":1}},"push":{"particles_nb":4}}},"retina_detect":true});
+        particlesJS("particles-js", {"particles":{"number":{"value":60,"density":{"enable":true,"value_area":800}},"color":{"value":"#00ffff"},"shape":{"type":"circle"},"opacity":{"value":0.5,"random":true,"anim":{"enable":true,"speed":1,"opacity_min":0.1,"sync":false}},"size":{"value":3,"random":true},"line_linked":{"enable":true,"distance":150,"color":"#ff00ff","opacity":0.4,"width":1},"move":{"enable":true,"speed":2,"direction":"none","out_mode":"out"}},"interactivity":{"detect_on":"canvas","events":{"onhover":{"enable":true,"mode":"grab"},"onclick":{"enable":false},"resize":true},"modes":{"grab":{"distance":140,"line_linked":{"opacity":1}}}},"retina_detect":true});
 
         // Progress bar and scroll animations
         const progressBar = document.getElementById('progressBar');
@@ -470,33 +492,69 @@
         animatedElements.forEach(el => animationObserver.observe(el));
         window.addEventListener('scroll', updateProgressBar);
         
-        // Mascot interaction
-        let audioContext = null;
-        function playClickSound() {
-            if (!audioContext) { audioContext = new (window.AudioContext || window.webkitAudioContext)(); }
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            const now = audioContext.currentTime;
-            oscillator.type = 'triangle';
-            oscillator.frequency.setValueAtTime(880, now);
-            gainNode.gain.setValueAtTime(0, now);
-            gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01);
-            gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
-            oscillator.start(now);
-            oscillator.stop(now + 0.1);
-        }
+        // [UPDATED] Mascot interaction
         const mascot = document.getElementById('mascot');
         const animations = ['mascot-shake', 'mascot-jump', 'mascot-spin'];
+        const mascotPhrases = [
+            '小時候不讀書，長大罵記者',
+            '高二記得選修媒體識讀',
+            '高三記得選修雙溪公民行動',
+            '公民好神，成為公民神不再只是夢想！',
+            '多讀點讀書，不要再『點』我了！',
+            '不要問我志驅去哪裡，我不知道！',
+            '公民神有三力，注意力、記憶力、戰鬥力！',
+            '努力向上、勇往直前、不畏艱難，我要成為公民神！ ',
+            '公民好神！我會遵守公民神會員守則！',
+            '志驅還在吃早餐，稍等他一下！',
+            '怎麼樣不可以吃蛋嗎？！蛋很營養！',
+        ];
+        
         mascot.addEventListener('click', () => {
-            playClickSound();
+            // --- 1. Animation & Sound ---
             mascot.classList.remove(...animations);
             const randomAnimation = animations[Math.floor(Math.random() * animations.length)];
             mascot.classList.add('mascot-animate', randomAnimation);
             setTimeout(() => {
                 mascot.classList.remove('mascot-animate', randomAnimation);
             }, 500);
+
+            // --- 2. [NEW] Particle Effect ---
+            const rect = mascot.getBoundingClientRect();
+            const originX = (rect.left + rect.right) / 2 / window.innerWidth;
+            const originY = (rect.top + rect.bottom) / 2 / window.innerHeight;
+            
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { x: originX, y: originY },
+                colors: ['#ff00ff', '#00ffff', '#faff00'] // Using theme colors
+            });
+
+            // --- 3. [NEW] Toast Message ---
+            // Remove any existing toast
+            const existingToast = document.querySelector('.mascot-toast');
+            if (existingToast) {
+                existingToast.remove();
+            }
+
+            // Create new toast
+            const toast = document.createElement('div');
+            toast.className = 'mascot-toast';
+            toast.textContent = mascotPhrases[Math.floor(Math.random() * mascotPhrases.length)];
+            document.body.appendChild(toast);
+            
+            // Animate it in
+            setTimeout(() => {
+                toast.classList.add('is-visible');
+            }, 50); // Small delay to ensure transition is triggered
+            
+            // Animate it out and remove it
+            setTimeout(() => {
+                toast.classList.remove('is-visible');
+                setTimeout(() => {
+                    if (toast) toast.remove();
+                }, 400); // Wait for fade out animation to finish
+            }, 4000); // Toast visible for 4 seconds
         });
 
         // Modal for press releases
@@ -511,24 +569,24 @@
                 const imgSrc = btn.getAttribute('data-img-src');
                 modalImg.setAttribute('src', imgSrc);
                 modal.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Prevent background scrolling
             });
         });
 
         function closeModal() {
             modal.classList.remove('active');
             modalImg.classList.remove('zoomed');
+            document.body.style.overflow = ''; // Restore scrolling
             setTimeout(() => modalImg.setAttribute('src', ''), 300);
         }
         
         closeBtn.addEventListener('click', closeModal);
-        modal.addEventListener('click', closeModal); // Close when clicking the background
+        modal.addEventListener('click', closeModal); 
         
-        modalContentWrapper.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent modal from closing when clicking inside the wrapper (e.g., on the scrollbar)
-        });
+        modalContentWrapper.addEventListener('click', (e) => e.stopPropagation());
         
         modalImg.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevent modal from closing when clicking on the image itself
+            e.stopPropagation();
             e.currentTarget.classList.toggle('zoomed');
         });
 
@@ -590,11 +648,11 @@
                 if (charIndex < line.text.length) {
                     currentLineElement.innerHTML += line.text.charAt(charIndex).replace('\n', '<br>');
                     charIndex++;
-                    setTimeout(type, 30 + Math.random() * 40); // Slower typing for Chinese
+                    setTimeout(type, 30 + Math.random() * 40);
                 } else {
                     lineIndex++; 
                     charIndex = 0; 
-                    setTimeout(type, 300); // Pause between lines
+                    setTimeout(type, 300);
                 }
             } else {
                  const cursor = document.createElement('span');
@@ -608,7 +666,7 @@
         const terminalObserver = new IntersectionObserver(entries => {
             if (entries[0].isIntersecting) { 
                 type(); 
-                terminalObserver.unobserve(entries[0].target); // Run only once
+                terminalObserver.unobserve(entries[0].target);
             }
         }, { threshold: 0.5 });
 
